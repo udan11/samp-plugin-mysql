@@ -23,6 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef POSTGRE_SQL
+
 #include "pgsql_handler.h"
 
 PgSQL_Handler::PgSQL_Handler() {
@@ -237,3 +239,5 @@ bool PgSQL_Handler::fetch_assoc(class SQL_Query *query, char *fieldname, char *&
 	len = 0;
 	return true;
 }
+
+#endif

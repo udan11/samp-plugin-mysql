@@ -23,6 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef POSTGRE_SQL
+
 #pragma once
 
 #include "../main.h"
@@ -33,3 +35,5 @@ class PgSQL_Result : public SQL_Result {
 		PgSQL_Result();
 		virtual ~PgSQL_Result();
 };
+
+#endif

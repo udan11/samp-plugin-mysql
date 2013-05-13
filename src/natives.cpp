@@ -47,9 +47,11 @@ cell AMX_NATIVE_CALL Natives::sql_connect(AMX *amx, cell *params) {
 		case SQL_HANDLER_MYSQL:
 			handler = new MySQL_Handler();
 			break;
+#ifdef POSTGRE_SQL
 		case SQL_HANDLER_PGSQL:
 			handler = new PgSQL_Handler();
 			break;
+#endif
 		default:
 			log(LOG_INFO, "Natives::sql_connect: Unknown SQL type (%d)!", params[1]);
 			Mutex::getInstance()->unlock();
@@ -70,9 +72,11 @@ cell AMX_NATIVE_CALL Natives::sql_connect(AMX *amx, cell *params) {
 			case SQL_HANDLER_MYSQL:
 				port = 3306;
 				break;
+#ifdef POSTGRE_SQL
 			case SQL_HANDLER_PGSQL:
 				port = 5432;
 				break;
+#endif
 		}
 	}
 	log(LOG_INFO, "Natives::sql_connect: Connecting to %s:***@%s:%d/%s...", user, host, port, db);
@@ -229,9 +233,11 @@ cell AMX_NATIVE_CALL Natives::sql_query(AMX *amx, cell *params) {
 		case SQL_HANDLER_MYSQL:
 			query = new MySQL_Query();
 			break;
+#ifdef POSTGRE_SQL
 		case SQL_HANDLER_PGSQL:
 			query = new PgSQL_Query();
 			break;
+#endif
 		default:
 			Mutex::getInstance()->unlock();
 			return 0;

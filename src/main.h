@@ -62,10 +62,12 @@
 #include "mysql/mysql_query.h"
 #include "mysql/mysql_result.h"
 
-#include "pgsql/connector/libpq-fe.h"
-#include "pgsql/pgsql_handler.h"
-#include "pgsql/pgsql_query.h"
-#include "pgsql/pgsql_result.h"
+#ifdef POSTGRE_SQL
+	#include "pgsql/connector/libpq-fe.h"
+	#include "pgsql/pgsql_handler.h"
+	#include "pgsql/pgsql_query.h"
+	#include "pgsql/pgsql_result.h"
+#endif
 
 #include "log.h"
 #include "mutex.h"

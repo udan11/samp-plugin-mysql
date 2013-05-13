@@ -23,6 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef POSTGRE_SQL
+
 #include "pgsql_result.h"
 
 PgSQL_Result::PgSQL_Result() {
@@ -34,3 +36,5 @@ PgSQL_Result::~PgSQL_Result() {
 		PQclear(result);
 	}
 }
+
+#endif

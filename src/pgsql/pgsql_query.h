@@ -23,6 +23,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef POSTGRE_SQL
+
 #pragma once
 
 #include "../main.h"
@@ -30,3 +32,5 @@
 class PgSQL_Query : public SQL_Query {
 	
 };
+
+#endif
