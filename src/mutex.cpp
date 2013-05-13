@@ -32,7 +32,6 @@ Mutex::Mutex() :
 #ifdef WIN32
 	InitializeCriticalSection(&handle);
 #else
-	//handle = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);

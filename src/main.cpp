@@ -29,7 +29,7 @@ extern void *pAMXFunctions;
 
 int last_handler = 1, last_query = 1;
 handlers_t handlers = handlers_t();
-queries_t pending = queries_t();
+pending_t pending = pending_t();
 queries_t queries = queries_t();
 
 #ifdef WIN32

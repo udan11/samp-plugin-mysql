@@ -24,6 +24,7 @@
  */
 
 #include "natives.h"
+#include "sql/sql_utils.h"
 
 cell AMX_NATIVE_CALL Natives::sql_debug(AMX *amx, cell *params) {
 	if (params[0] < 2 * 4) {
@@ -220,14 +221,15 @@ cell AMX_NATIVE_CALL Natives::sql_query(AMX *amx, cell *params) {
 	if (params[0] < 5 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
+	//Mutex::getInstance()->lock();
 	int handler_id = params[1];
 	if (!is_valid_handler(handler_id)) {
-		Mutex::getInstance()->unlock();
+		//Mutex::getInstance()->unlock();
 		return 0;
 	}
 	SQL_Query *query;
-	switch (handlers[handler_id]->handler_type) {
+	SQL_Handler *handler = get_handler(handlers, handler_id);
+	switch (handler->handler_type) {
 		case SQL_HANDLER_MYSQL:
 			query = new MySQL_Query();
 			break;
@@ -237,13 +239,13 @@ cell AMX_NATIVE_CALL Natives::sql_query(AMX *amx, cell *params) {
 			break;
 #endif
 		default:
-			Mutex::getInstance()->unlock();
+			//Mutex::getInstance()->unlock();
 			return 0;
 	}
 	int id = last_query++;
 	query->amx = amx;
 	query->id = id;
-	query->handler = params[1];
+	query->handler = handler_id;
 	amx_GetString_(amx, params[2], query->query);
 	query->flags = params[3];
 	query->status = 0;
@@ -292,19 +294,25 @@ cell AMX_NATIVE_CALL Natives::sql_query(AMX *amx, cell *params) {
 				break;
 		}
 	}
-	log(LOG_DEBUG, "Natives::sql_query: Scheduling query %d: \"%s\", callback: %s(%s) for execution...", query->id, query->query, query->callback, query->format);
-	queries[query->id] = query;
-	if (!(query->flags & QUERY_THREADED)) {
-		log(LOG_DEBUG, "Natives::sql_query: Executing query->id = %d...", query->id);
-		handlers[query->handler]->execute_query(query);
-		if (strlen(query->callback)) {
-			log(LOG_DEBUG, "Natives::sql_query: Executing query callback (query->error = %d)...", query->error);
-			query->execute_callback();
-		}
-		Mutex::getInstance()->unlock();
+	// Add this to the valid queries map.
+	Mutex::getInstance()->lock();
+	queries[id] = query;
+	Mutex::getInstance()->unlock();
+	if (query->flags & QUERY_THREADED) {
+		log(LOG_DEBUG, "Natives::sql_query: Scheduling query %d: \"%s\", callback: %s(%s) for execution...", id, query->query, query->callback, query->format);
+		// TODO: THIS is where we need the thread-safe queue.
+		pending.push(query);
+	}
+	else {
+		log(LOG_DEBUG, "Natives::sql_query: Executing query->id = %d...", id);
+		handler->execute_query(query);
+		log(LOG_DEBUG, "Natives::sql_query: Executing query callback (query->error = %d)...", query->error);
+		// Check now done in here.
+		query->execute_callback();
+		//Mutex::getInstance()->unlock();
 		return id;
 	}
-	Mutex::getInstance()->unlock();
+	//Mutex::getInstance()->unlock();
 	return id;
 }
 
@@ -312,17 +320,17 @@ cell AMX_NATIVE_CALL Natives::sql_free_result(AMX *amx, cell *params) {
 	if (params[0] < 1 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
 	int query_id = params[1];
 	if (!is_valid_query(query_id)) {
-		Mutex::getInstance()->unlock();
 		return 0;
 	}
-	class SQL_Query *query = queries[query_id];
-	log(LOG_DEBUG, "Natives::sql_query: Freeing query %d...", query->id);
-	delete query;
+	SQL_Query *query = get_query(queries, query_id); // Using C++11 for "const"ness.
+	Mutex::getInstance()->lock();
+	// Protect the write operation.
 	queries.erase(query_id);
 	Mutex::getInstance()->unlock();
+	log(LOG_DEBUG, "Natives::sql_query: Freeing query %d...", query->id);
+	delete query;
 	return 1;
 }
 
@@ -330,17 +338,18 @@ cell AMX_NATIVE_CALL Natives::sql_store_result(AMX *amx, cell *params) {
 	if (params[0] < 1 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
 	int query_id = params[1];
 	if (!is_valid_query(query_id)) {
-		Mutex::getInstance()->unlock();
 		return 0;
 	}
-	class SQL_Query *query = queries[query_id];
-	log(LOG_DEBUG, "Natives::sql_query: Storing query %d...", query->id);
-	query->flags &= ~QUERY_THREADED;
-	query->status = QUERY_STATUS_EXECUTED;
-	Mutex::getInstance()->unlock();
+	SQL_Query *query = get_query(queries, query_id); // Using C++11 for "const"ness.
+	//class SQL_Query *query = queries[query_id];
+	if (query->status = QUERY_STATUS_PROCESSED) {
+		// Only save processed data.
+		log(LOG_DEBUG, "Natives::sql_query: Storing query %d...", query->id);
+		query->flags &= ~QUERY_THREADED;
+		query->status = QUERY_STATUS_EXECUTED;
+	}
 	return 1;
 }
 
@@ -348,32 +357,38 @@ cell AMX_NATIVE_CALL Natives::sql_insert_id(AMX *amx, cell *params) {
 	if (params[0] < 1 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
+	//Mutex::getInstance()->lock();
 	int query_id = params[1];
 	if (!is_valid_query(query_id)) {
-		Mutex::getInstance()->unlock();
+		//Mutex::getInstance()->unlock();
 		return 0;
 	}
-	SQL_Query *query = queries[query_id];
-	int insert_id = query->results[query->last_result]->insert_id;
-	Mutex::getInstance()->unlock();
-	return insert_id;
+	SQL_Query *query = get_query(queries, query_id);
+	SQL_Result *r = get_last_result(*query);
+	if (r == 0) {
+		return 0;
+	}
+	else {
+		return r->insert_id;
+	}
 }
 
 cell AMX_NATIVE_CALL Natives::sql_affected_rows(AMX *amx, cell *params) {
 	if (params[0] < 1 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
 	int query_id = params[1];
 	if (!is_valid_query(query_id)) {
-		Mutex::getInstance()->unlock();
 		return 0;
 	}
-	SQL_Query *query = queries[query_id];
-	int affected_rows = query->results[query->last_result]->affected_rows;
-	Mutex::getInstance()->unlock();
-	return affected_rows;
+	SQL_Query *query = get_query(queries, query_id);
+	SQL_Result *r = get_last_result(*query);
+	if (r == 0) {
+		return 0;
+	}
+	else {
+		return r->affected_rows;
+	}
 }
 
 cell AMX_NATIVE_CALL Natives::sql_error(AMX *amx, cell *params) {
@@ -395,15 +410,12 @@ cell AMX_NATIVE_CALL Natives::sql_error_string(AMX *amx, cell *params) {
 	if (params[0] < 3 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
 	int query_id = params[1];
 	if (!is_valid_query(query_id)) {
-		Mutex::getInstance()->unlock();
 		return 0;
 	}
-	class SQL_Query *query = queries[query_id];
+	SQL_Query *query = get_query(queries, query_id);
 	if (!is_valid_handler(query->handler)) {
-		Mutex::getInstance()->unlock();
 		return 0;
 	}
 	int dest_len = params[3], len = strlen(query->error_msg);
@@ -421,55 +433,56 @@ cell AMX_NATIVE_CALL Natives::sql_error_string(AMX *amx, cell *params) {
 }
 
 cell AMX_NATIVE_CALL Natives::sql_num_rows(AMX *amx, cell *params) {
-	if (params[0] < 4) {
+	if (params[0] < 1 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
 	int query_id = params[1];
 	if (!is_valid_query(query_id)) {
-		Mutex::getInstance()->unlock();
 		return 0;
 	}
-	SQL_Query *query = queries[query_id];
-	int num_rows = query->results[query->last_result]->num_rows;
-	Mutex::getInstance()->unlock();
-	return num_rows;
+	SQL_Query *query = get_query(queries, query_id);
+	SQL_Result *r = get_last_result(*query);
+	if (r == 0) {
+		return 0;
+	}
+	else {
+		return r->num_rows;
+	}
 }
 
 cell AMX_NATIVE_CALL Natives::sql_num_fields(AMX *amx, cell *params) {
-	if (params[0] < 4) {
+	if (params[0] < 1 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
 	int query_id = params[1];
 	if (!is_valid_query(query_id)) {
-		Mutex::getInstance()->unlock();
 		return 0;
 	}
-	SQL_Query *query = queries[query_id];
-	int num_fields = query->results[query->last_result]->num_fields;
-	Mutex::getInstance()->unlock();
-	return num_fields;
+	SQL_Query *query = get_query(queries, query_id);
+	SQL_Result *r = get_last_result(*query);
+	if (r == 0) {
+		return 0;
+	}
+	else {
+		return r->num_fields;
+	}
 }
 
 cell AMX_NATIVE_CALL Natives::sql_next_result(AMX *amx, cell* params) {
 	if (params[0] < 2 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
 	int query_id = params[1];
 	if (!is_valid_query(query_id)) {
-		Mutex::getInstance()->unlock();
 		return 0;
 	}
-	class SQL_Query *query = queries[query_id];
-	if (!is_valid_handler(query->handler)) {
-		Mutex::getInstance()->unlock();
+	SQL_Query *query = get_query(queries, query_id);
+	int handler_id = query->handler;
+	if (!is_valid_handler(handler_id)) {
 		return 0;
 	}
-	int ret = handlers[query->handler]->seek_result(query, params[2]);
-	Mutex::getInstance()->unlock();
-	return ret;
+	// Make "handler" some form of smart pointer for automated cleanup.
+	return get_handler(handlers, handler_id)->seek_result(query, params[2]);
 }
 
 cell AMX_NATIVE_CALL Natives::sql_field_name(AMX *amx, cell *params) {

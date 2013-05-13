@@ -44,7 +44,7 @@ class SQL_Query {
 	public:
 		AMX *amx;
 
-		SQL_Handler *handler;
+		int handler;
 		int id, flags, status, error, last_result;
 		char *query, *callback, *format;
 		const char *error_msg;

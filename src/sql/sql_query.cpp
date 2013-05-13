@@ -33,10 +33,10 @@ SQL_Query::SQL_Query() :
 	status(0),
 	error(0),
 	last_result(0),
-	query(0),
-	callback(0),
-	format(0),
-	error_msg(0),
+	query(""),
+	callback(""),
+	format(""),
+	error_msg(""),
 	params_a(),
 	params_c(),
 	params_s(),
@@ -60,6 +60,7 @@ SQL_Query::~SQL_Query() {
 }
 
 int SQL_Query::execute_callback() {
+	if (callback[0] == '\0') return 0;
 	cell ret, amx_addr = -1;
 	int funcidx;
 	if (error == 0) {

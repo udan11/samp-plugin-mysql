@@ -32,7 +32,7 @@
 
 #include <map>
 #include <vector>
-#include <unordered_set>
+#include <queue>
 
 #if ((defined(WIN32)) || (defined(_WIN32)) || (defined(_WIN64)))
 	#include "windows.h"
@@ -77,13 +77,11 @@
 #define PLUGIN_VERSION					"v2.0"
 
 extern int last_handler, last_query;
+
 typedef std::map<int, class SQL_Handler*> handlers_t;
 typedef std::map<int, class SQL_Query*> queries_t;
-//typedef std::unordered_set<int> active_t;
-
+typedef std::queue<class SQL_Query*> pending_t;
 
 extern handlers_t handlers;
-extern queries_t pending;
+extern pending_t pending;
 extern queries_t queries;
-
-
