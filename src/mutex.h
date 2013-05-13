@@ -38,7 +38,7 @@ class Mutex {
 		void lock();
 		void unlock();
 		~Mutex();
-	protected:
+	//protected:
 		Mutex();
 	private:
 		static Mutex *singleton;

@@ -24,6 +24,15 @@
  */
 
 #include "log.h"
+#include "mutex.h"
+
+// Create a local mutex purely for accessing the console and log file, entirely
+// independently of query queue accesses.  Note that even this is not 100% safe
+// if a different plugin or script running in a different thread (mostly the
+// main one) calls "logprintf" at the same time as the query thread does.
+// However, POSIX functions SHOULD be thread-safe.  They might result in two
+// messages being intermixed with each other, but won't crash.
+Mutex logFileMutex = Mutex();
 
 logprintf_t logprintf;
 int log_level_file = LOG_ALL, log_level_console = LOG_WARNING;
@@ -56,6 +65,7 @@ void log(int level, char *format, ...) {
 		char timestamp[16];
 		strftime(timestamp, sizeof(timestamp), "%X", timeinfo);
 		vsnprintf(msg, len, format, args);
+		logFileMutex.lock();
 		if (level >= log_level_file) {
 			FILE *logFile = fopen(LOG_FILE, "a");
 			if (logFile != 0) {
@@ -66,6 +76,7 @@ void log(int level, char *format, ...) {
 		if (level >= log_level_console) {
 			logprintf("[plugin.mysql]%s %s", prefix, msg);
 		}
+		logFileMutex.unlock();
 		free(msg);
 	}
 	va_end(args);

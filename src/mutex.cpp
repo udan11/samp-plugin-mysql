@@ -30,7 +30,7 @@ bool Mutex::isEnabled = false;
 
 Mutex::Mutex() {
 #ifdef WIN32
-	handle = CreateMutex(0, FALSE, "samp_plugin_mysql");
+	handle = CreateMutex(0, FALSE, NULL); //, "samp_plugin_mysql");
 #else
 	//handle = PTHREAD_MUTEX_INITIALIZER;
 	pthread_mutexattr_t attr;
