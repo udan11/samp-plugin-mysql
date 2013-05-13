@@ -29,6 +29,8 @@
 
 #include "../sdk/amx/amx.h"
 
+class SQL_Handler;
+
 #define QUERY_ERROR_CALLBACK				"OnSQLError"
 
 #define QUERY_THREADED						1
@@ -41,7 +43,9 @@
 class SQL_Query {
 	public:
 		AMX *amx;
-		int id, handler, flags, status, error, last_result;
+
+		SQL_Handler *handler;
+		int id, flags, status, error, last_result;
 		char *query, *callback, *format;
 		const char *error_msg;
 		SQL_Query();

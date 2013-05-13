@@ -25,41 +25,38 @@
 
 #include "sql_query.h"
 
-SQL_Query::SQL_Query() {
-	amx = 0;
-	id = 0;
-	handler = 0;
-	flags = 0;
-	status = 0;
-	error = 0;
-	last_result = 0;
-	query = 0;
-	callback = 0;
-	format = 0;
-	error_msg = 0;
-	params_a.clear();
-	params_c.clear();
-	params_s.clear();
-	results.clear();
+SQL_Query::SQL_Query() :
+	amx(0),
+	id(0),
+	handler(0),
+	flags(0),
+	status(0),
+	error(0),
+	last_result(0),
+	query(0),
+	callback(0),
+	format(0),
+	error_msg(0),
+	params_a(),
+	params_c(),
+	params_s(),
+	results() {
 }
 
 SQL_Query::~SQL_Query() {
 	free(query);
 	free(callback);
 	free(format);
-	for (int i = 0, size = params_a.size(); i != size; ++i) {
-		free(params_a[i].first);
+	for (std::vector<std::pair<cell*, int> >::iterator i = params_a.begin(), end = params_a.end(); i != end; ++i) {
+		free((*i).first);
 	}
-	params_a.clear();
-	params_c.clear();
-	for (int i = 0, size = params_s.size(); i != size; ++i) {
-		free(params_s[i]);
+	for (std::vector<char*>::iterator i = params_s.begin(), end = params_s.end(); i != end; ++i) {
+		free((*i));
 	}
-	params_s.clear();
-	for (int i = 0, size = results.size(); i != size; ++i) {
-		free(results[i]);
+	for (std::vector<class SQL_Result*>::iterator i = results.begin(), end = results.end(); i != end; ++i) {
+		// Shouldn't use "free" on classes - it doesn't call the destructor.
+		delete (*i);
 	}
-	results.clear();
 }
 
 int SQL_Query::execute_callback() {

@@ -38,12 +38,10 @@ class Mutex {
 		void lock();
 		void unlock();
 		~Mutex();
-	//protected:
 		Mutex();
 	private:
 		static Mutex singleton;
 #ifdef WIN32
-		//HANDLE handle;
 		CRITICAL_SECTION handle;
 #else
 		pthread_mutex_t handle;

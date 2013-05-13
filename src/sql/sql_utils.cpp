@@ -26,9 +26,11 @@
 #include "sql_utils.h"
 
 bool is_valid_handler(int id) {
-	return handlers.find(id) != handlers.end();
+	// Always call the "const_iterator" version for pure read safety.
+	return static_cast<const handlers_t>(handlers).find(id) != static_cast<const handlers_t>(handlers).end();
 }
 
 bool is_valid_query(int id) {
-	return queries.find(id) != queries.end();
+	// Always call the "const_iterator" version for pure read safety.
+	return static_cast<const queries_t>(queries).find(id) != static_cast<const queries_t>(queries).end();
 }

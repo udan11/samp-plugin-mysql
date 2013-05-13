@@ -27,10 +27,10 @@
 
 extern void *pAMXFunctions;
 
-bool running = false;
 int last_handler = 1, last_query = 1;
-std::map<int, class SQL_Handler*> handlers;
-std::map<int, class SQL_Query*> queries;
+handlers_t handlers = handlers_t();
+queries_t pending = queries_t();
+queries_t queries = queries_t();
 
 #ifdef WIN32
 DWORD __stdcall ProcessQueryThread(LPVOID lpParam);
@@ -80,7 +80,6 @@ PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData) {
 		exit(0);
 		return 0;
 	}
-	running = true;
 #ifdef WIN32
 	HANDLE threadHandle;
 	DWORD dwThreadId = 0;
@@ -103,8 +102,9 @@ PLUGIN_EXPORT int PLUGIN_CALL AmxLoad(AMX *amx) {
 }
 
 PLUGIN_EXPORT int PLUGIN_CALL AmxUnload(AMX *amx) {
+	// Finish all pending queries (but don't run the callbacks).
 	Mutex::getInstance()->lock();
-	for (std::map<int, class SQL_Handler*>::iterator it = handlers.begin(), next = it; it != handlers.end(); it = next) {
+	for (handlers_t::iterator it = handlers.begin(), next = it; it != handlers.end(); it = next) {
 		++next;
 		SQL_Handler *handler = it->second;
 		if (handler->amx == amx) {
@@ -112,7 +112,7 @@ PLUGIN_EXPORT int PLUGIN_CALL AmxUnload(AMX *amx) {
 			handlers.erase(it);
 		}
 	}
-	for (std::map<int, class SQL_Query*>::iterator it = queries.begin(), next = it; it != queries.end(); it = next) {
+	for (queries_t::iterator it = queries.begin(), next = it; it != queries.end(); it = next) {
 		++next;
 		SQL_Query *query = it->second;
 		if (query->amx == amx) {
@@ -125,30 +125,13 @@ PLUGIN_EXPORT int PLUGIN_CALL AmxUnload(AMX *amx) {
 }
 
 PLUGIN_EXPORT void PLUGIN_CALL Unload() {
-	running = false;
-	Mutex::getInstance()->lock();
-	for (std::map<int, class SQL_Handler*>::iterator it = handlers.begin(), next = it; it != handlers.end(); it = next) {
-		++next;
-		SQL_Handler *handler = it->second;
-		delete handler;
-		handlers.erase(it);
-	}
-	handlers.clear();
-	for (std::map<int, class SQL_Query*>::iterator it = queries.begin(), next = it; it != queries.end(); it = next) {
-		++next;
-		SQL_Query *query = it->second;
-		delete query;
-		queries.erase(it);
-	}
-	queries.clear();
-	Mutex::getInstance()->unlock();
-	delete Mutex::getInstance();
+	// Shouldn't need to purge anything here - "AmxUnload" will have done it all.
 	logprintf("[plugin.mysql] Plugin succesfully unloaded!");
 }
 
 PLUGIN_EXPORT void PLUGIN_CALL ProcessTick() {
 	Mutex::getInstance()->lock();
-	for (std::map<int, class SQL_Query*>::iterator it = queries.begin(), next = it; it != queries.end(); it = next) {
+	for (queries_t::iterator it = queries.begin(), next = it; it != queries.end(); it = next) {
 		++next;
 		SQL_Query *query = it->second;
 		if ((query->flags & QUERY_THREADED) && (query->status == QUERY_STATUS_EXECUTED)) {
@@ -170,9 +153,9 @@ DWORD __stdcall ProcessQueryThread(LPVOID lpParam) {
 #else
 void *ProcessQueryThread(void *lpParam) {
 #endif
-	while (running) {
-		Mutex::getInstance()->lock();
-		for (std::map<int, class SQL_Query*>::iterator it = queries.begin(), next = it; it != queries.end(); it = next) {
+	for ( ; ; ) {
+		//Mutex::getInstance()->lock();
+		for (queries_t::iterator it = queries.begin(), next = it; it != queries.end(); it = next) {
 			++next;
 			SQL_Query *query = it->second;
 			if ((query->flags & QUERY_THREADED) && (query->status == QUERY_STATUS_NONE)) {
@@ -180,7 +163,7 @@ void *ProcessQueryThread(void *lpParam) {
 				handlers[query->handler]->execute_query(query);
 			}
 		}
-		Mutex::getInstance()->unlock();
+		//Mutex::getInstance()->unlock();
 		SLEEP(50);
 	}
 	return 0;

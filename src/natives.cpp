@@ -29,11 +29,9 @@ cell AMX_NATIVE_CALL Natives::sql_debug(AMX *amx, cell *params) {
 	if (params[0] < 2 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
 	log_level_file = params[1];
 	log_level_console = params[2];
 	log(LOG_WARNING, "Natives::sql_debug: Switching the log levels to (%d, %d)...", log_level_file, log_level_console);
-	Mutex::getInstance()->unlock();
 	return 1;
 }
 
@@ -696,15 +694,15 @@ cell AMX_NATIVE_CALL Natives::sql_get_field_assoc_float(AMX *amx, cell *params) 
 	if (params[0] < 2 * 4) {
 		return 0;
 	}
-	Mutex::getInstance()->lock();
+	//Mutex::getInstance()->lock();
 	int query_id = params[1];
 	if (!is_valid_query(query_id)) {
-		Mutex::getInstance()->unlock();
+		//Mutex::getInstance()->unlock();
 		return 0;
 	}
 	class SQL_Query *query = queries[query_id];
 	if (!is_valid_handler(query->handler)) {
-		Mutex::getInstance()->unlock();
+		//Mutex::getInstance()->unlock();
 		return 0;
 	}
 	char *fieldname = 0, *tmp = 0;
@@ -721,6 +719,6 @@ cell AMX_NATIVE_CALL Natives::sql_get_field_assoc_float(AMX *amx, cell *params) 
 		log(LOG_WARNING, "Natives::sql_get_field_assoc_int: Can't find field %s or result is empty.", fieldname);
 	}
 	free(fieldname);
-	Mutex::getInstance()->unlock();
+	//Mutex::getInstance()->unlock();
 	return amx_ftoc(val);
 }

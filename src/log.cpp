@@ -65,6 +65,7 @@ void log(int level, char *format, ...) {
 		char timestamp[16];
 		strftime(timestamp, sizeof(timestamp), "%X", timeinfo);
 		vsnprintf(msg, len, format, args);
+		// Get the lock for as little time as possible.
 		logFileMutex.lock();
 		if (level >= log_level_file) {
 			FILE *logFile = fopen(LOG_FILE, "a");
