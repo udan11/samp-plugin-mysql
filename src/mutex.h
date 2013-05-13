@@ -33,7 +33,7 @@
 
 class Mutex {
 	public:
-		static bool isEnabled;
+		bool isEnabled;
 		static Mutex *getInstance();
 		void lock();
 		void unlock();
@@ -41,9 +41,10 @@ class Mutex {
 	//protected:
 		Mutex();
 	private:
-		static Mutex *singleton;
+		static Mutex singleton;
 #ifdef WIN32
-		HANDLE handle;
+		//HANDLE handle;
+		CRITICAL_SECTION handle;
 #else
 		pthread_mutex_t handle;
 #endif
