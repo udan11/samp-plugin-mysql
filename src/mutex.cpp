@@ -25,11 +25,8 @@
 
 #include "mutex.h"
 
-Mutex Mutex::singleton = Mutex();
-
-Mutex::Mutex() :
-	isEnabled(true) {
-#ifdef WIN32
+Mutex::Mutex() {
+#ifdef _WIN32
 	InitializeCriticalSection(&handle);
 #else
 	pthread_mutexattr_t attr;
@@ -37,24 +34,21 @@ Mutex::Mutex() :
 	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
 	pthread_mutex_init(&handle, &attr);
 #endif
+	isEnabled = true;
 }
 
 Mutex::~Mutex() {
 	isEnabled = false;
-#ifdef WIN32
+#ifdef _WIN32
 	DeleteCriticalSection(&handle);
 #else
 	pthread_mutex_destroy(&handle);
 #endif
 }
 
-Mutex *Mutex::getInstance() {
-	return &singleton;
-}
-
 void Mutex::lock() {
 	if (isEnabled) {
-#ifdef WIN32
+#ifdef _WIN32
 		EnterCriticalSection(&handle);
 #else
 		pthread_mutex_lock(&handle);
@@ -63,11 +57,9 @@ void Mutex::lock() {
 }
 
 void Mutex::unlock() {
-	if (isEnabled) {
-#ifdef WIN32
-		LeaveCriticalSection(&handle);
+#ifdef _WIN32
+	LeaveCriticalSection(&handle);
 #else
-		pthread_mutex_unlock(&handle);
+	pthread_mutex_unlock(&handle);
 #endif
-	}
 }

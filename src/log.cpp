@@ -24,24 +24,16 @@
  */
 
 #include "log.h"
-#include "mutex.h"
-
-// Create a local mutex purely for accessing the console and log file, entirely
-// independently of query queue accesses.  Note that even this is not 100% safe
-// if a different plugin or script running in a different thread (mostly the
-// main one) calls "logprintf" at the same time as the query thread does.
-// However, POSIX functions SHOULD be thread-safe.  They might result in two
-// messages being intermixed with each other, but won't crash.
-Mutex logFileMutex = Mutex();
 
 logprintf_t logprintf;
+Mutex log_mutex;
 int log_level_file = LOG_ALL, log_level_console = LOG_WARNING;
 
 void log(int level, char *format, ...) {
 	if ((level < log_level_file) && (level < log_level_console)) {
 		return;
 	}
-	char prefix[32];
+	char prefix[16] = "";
 	if (level == LOG_DEBUG) {
 		strcpy(prefix, "[debug]");
 	} else if (level == LOG_INFO) {
@@ -50,34 +42,31 @@ void log(int level, char *format, ...) {
 		strcpy(prefix, "[warning]");
 	} else if (level == LOG_ERROR) {
 		strcpy(prefix, "[error]");
-	} else {
-		strcpy(prefix, "");
 	}
 	va_list args;
 	va_start(args, format);
 	int len = vsnprintf(0, 0, format, args) + 1;
-	char *msg = (char*) malloc(len);
-	if (msg != 0) {
+	char *msg = (char*) malloc(sizeof(char) * len);
+	if (msg != NULL) {
 		time_t rawtime;
 		struct tm *timeinfo;
+		char timestamp[16];
 		time(&rawtime);
 		timeinfo = localtime(&rawtime);
-		char timestamp[16];
 		strftime(timestamp, sizeof(timestamp), "%X", timeinfo);
 		vsnprintf(msg, len, format, args);
-		// Get the lock for as little time as possible.
-		logFileMutex.lock();
+		log_mutex.lock();
 		if (level >= log_level_file) {
-			FILE *logFile = fopen(LOG_FILE, "a");
-			if (logFile != 0) {
-				fprintf(logFile, "[%s]%s %s\n", timestamp, prefix, msg);
-				fclose(logFile);
+			FILE *file = fopen(LOG_FILE, "a");
+			if (file != 0) {
+				fprintf(file, "[%s]%s %s\n", timestamp, prefix, msg);
+				fclose(file);
 			}
 		}
 		if (level >= log_level_console) {
 			logprintf("[plugin.mysql]%s %s", prefix, msg);
 		}
-		logFileMutex.unlock();
+		log_mutex.unlock();
 		free(msg);
 	}
 	va_end(args);

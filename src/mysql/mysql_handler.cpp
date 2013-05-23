@@ -23,7 +23,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "mysql_handler.h"
+#include "mysql.h"
+ 
+#ifdef SQL_HANDLER_MYSQL
 
 MySQL_Handler::MySQL_Handler() {
 	handler_type = SQL_HANDLER_MYSQL;
@@ -72,10 +74,9 @@ int MySQL_Handler::escape_string(const char *src, char *&dest) {
 	return mysql_real_escape_string(conn, dest, src, strlen(src));
 }
 
-void MySQL_Handler::execute_query(class SQL_Query *query) {
+void MySQL_Handler::execute_query(SQL_Query *query) {
 	MySQL_Query *q = dynamic_cast<MySQL_Query*>(query);
 	if (q == 0) {
-		log(LOG_ERROR, "MySQL_Handler::execute_query: Invalid dynamic cast.");
 		return;
 	}
 	q->status = QUERY_STATUS_EXECUTED;
@@ -128,7 +129,7 @@ void MySQL_Handler::execute_query(class SQL_Query *query) {
 	}
 }
 
-bool MySQL_Handler::seek_result(class SQL_Query *query, int result) {
+bool MySQL_Handler::seek_result(SQL_Query *query, int result) {
 	if (result == -1) {
 		result = query->last_result + 1;
 	}
@@ -143,7 +144,7 @@ bool MySQL_Handler::seek_result(class SQL_Query *query, int result) {
 	return false;
 }
 
-bool MySQL_Handler::fetch_field(class SQL_Query *query, int fieldidx, char *&dest, int &len) {
+bool MySQL_Handler::fetch_field(SQL_Query *query, int fieldidx, char *&dest, int &len) {
 	SQL_Result *r = query->results[query->last_result];
 	if ((0 <= fieldidx) && (fieldidx < r->num_fields)) {
 		if (dest == 0) {
@@ -159,10 +160,9 @@ bool MySQL_Handler::fetch_field(class SQL_Query *query, int fieldidx, char *&des
 	return true;
 }
 
-bool MySQL_Handler::seek_row(class SQL_Query *query, int row) {
+bool MySQL_Handler::seek_row(SQL_Query *query, int row) {
 	MySQL_Result *r = dynamic_cast<MySQL_Result*>(query->results[query->last_result]);
 	if (r == 0) {
-		log(LOG_ERROR, "MySQL_Handler::fetch_field: Invalid dynamic cast.");
 		return true;
 	}
 	if (row == -1) {
@@ -183,10 +183,10 @@ bool MySQL_Handler::seek_row(class SQL_Query *query, int row) {
 	return false;
 }
 
-bool MySQL_Handler::fetch_num(class SQL_Query *query, int fieldidx, char *&dest, int &len) {
+bool MySQL_Handler::fetch_num(SQL_Query *query, int fieldidx, char *&dest, int &len) {
 	MySQL_Result *r = dynamic_cast<MySQL_Result*>(query->results[query->last_result]);
 	if (r == 0) {
-		log(LOG_ERROR, "MySQL_Handler::fetch_field: Invalid dynamic cast.");
+		len = 0;
 		return true;
 	}
 	if ((r->num_rows != 0) && (0 <= fieldidx) && (fieldidx < r->num_fields)) {
@@ -226,7 +226,7 @@ bool MySQL_Handler::fetch_num(class SQL_Query *query, int fieldidx, char *&dest,
 	return true;
 }
 
-bool MySQL_Handler::fetch_assoc(class SQL_Query *query, char *fieldname, char *&dest, int &len) {
+bool MySQL_Handler::fetch_assoc(SQL_Query *query, char *fieldname, char *&dest, int &len) {
 	SQL_Result *r = query->results[query->last_result];
 	for (int i = 0, size = r->field_names.size(); i != size; ++i) {
 		if (strcmp(r->field_names[i].first, fieldname) == 0) {
@@ -236,3 +236,5 @@ bool MySQL_Handler::fetch_assoc(class SQL_Query *query, char *fieldname, char *&
 	len = 0;
 	return true;
 }
+
+#endif

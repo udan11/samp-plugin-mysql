@@ -23,9 +23,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifdef POSTGRE_SQL
-
-#include "pgsql_handler.h"
+#include "pgsql.h"
+ 
+#ifdef SQL_HANDLER_PGSQL
 
 PgSQL_Handler::PgSQL_Handler() {
 	handler_type = SQL_HANDLER_PGSQL;
@@ -40,7 +40,6 @@ bool PgSQL_Handler::connect(const char *host, const char *user, const char *pass
 	int len = snprintf(0, 0, "user=%s password=%s dbname=%s hostaddr=%s port=%d", user, pass, db, host, port) + 1;
 	char *conninfo = (char*) malloc(len);
 	snprintf(conninfo, len, "user=%s password=%s dbname=%s hostaddr=%s port=%d", user, pass, db, host, port);
-	log(LOG_DEBUG, "PgSQL_Handler::connect: %s", conninfo);
 	conn = PQconnectdb(conninfo);
 	free(conninfo);
 	return PQstatus(conn) == CONNECTION_OK;
@@ -51,8 +50,7 @@ void PgSQL_Handler::disconnect() {
 }
 
 int PgSQL_Handler::get_errno() {
-	// TODO
-	return 1;
+	return ping(); // TODO: Implement it properly.
 }
 
 const char *PgSQL_Handler::get_error() {
@@ -60,37 +58,32 @@ const char *PgSQL_Handler::get_error() {
 }
 
 int PgSQL_Handler::ping() {
-	// TODO: return PQping(conn);
-	return 0;
+	return PQstatus(conn);
 }
 
 const char *PgSQL_Handler::get_stat() {
-	// TODO
-	return 0;
+	return 0; // TODO: Find an equivalent.
 }
 
 const char *PgSQL_Handler::get_charset() {
-	// TODO
-	return 0;
+	return pg_encoding_to_char(PQclientEncoding(conn));
 }
 
 bool PgSQL_Handler::set_charset(char *charset) {
-	// TODO
-	return false;
+	return PQsetClientEncoding(conn, charset) == 0;
 }
 
 int PgSQL_Handler::escape_string(const char *src, char *&dest) {
 	return PQescapeStringConn(conn, dest, src, strlen(src), 0);
 }
 
-void PgSQL_Handler::execute_query(class SQL_Query *query) {
+void PgSQL_Handler::execute_query(SQL_Query *query) {
 	PgSQL_Query *q = dynamic_cast<PgSQL_Query*>(query);
 	if (q == 0) {
-		log(LOG_ERROR, "PgSQL_Handler::execute_query: Invalid dynamic cast.");
 		return;
 	}
 	q->status = QUERY_STATUS_EXECUTED;
-	if (PQstatus(conn) == CONNECTION_OK) {
+	if (!ping()) {
 		PgSQL_Result *r = new PgSQL_Result();
 		r->result = PQexec(conn, query->query);
 		switch (PQresultStatus(r->result)) {
@@ -142,7 +135,7 @@ void PgSQL_Handler::execute_query(class SQL_Query *query) {
 	}
 }
 
-bool PgSQL_Handler::seek_result(class SQL_Query *query, int result) {
+bool PgSQL_Handler::seek_result(SQL_Query *query, int result) {
 	if (result == -1) {
 		result = query->last_result + 1;
 	}
@@ -156,7 +149,7 @@ bool PgSQL_Handler::seek_result(class SQL_Query *query, int result) {
 	return false;
 }
 
-bool PgSQL_Handler::fetch_field(class SQL_Query *query, int fieldidx, char *&dest, int &len) {
+bool PgSQL_Handler::fetch_field(SQL_Query *query, int fieldidx, char *&dest, int &len) {
 	SQL_Result *r = query->results[query->last_result];
 	if ((0 <= fieldidx) && (fieldidx < r->num_fields)) {
 		if (dest == 0) {
@@ -172,7 +165,7 @@ bool PgSQL_Handler::fetch_field(class SQL_Query *query, int fieldidx, char *&des
 	return true;
 }
 
-bool PgSQL_Handler::seek_row(class SQL_Query *query, int row) {
+bool PgSQL_Handler::seek_row(SQL_Query *query, int row) {
 	SQL_Result *r = query->results[query->last_result];
 	if (row == -1) {
 		row = r->last_row_idx + 1;
@@ -187,10 +180,10 @@ bool PgSQL_Handler::seek_row(class SQL_Query *query, int row) {
 	return false;
 }
 
-bool PgSQL_Handler::fetch_num(class SQL_Query *query, int fieldidx, char *&dest, int &len) {
+bool PgSQL_Handler::fetch_num(SQL_Query *query, int fieldidx, char *&dest, int &len) {
 	PgSQL_Result *r = dynamic_cast<PgSQL_Result*>(query->results[query->last_result]);
 	if (r == 0) {
-		log(LOG_ERROR, "MySQL_Handler::fetch_field: Invalid dynamic cast.");
+		len = 0;
 		return true;
 	}
 	if ((r->num_rows != 0) && (0 <= fieldidx) && (fieldidx < r->num_fields)) {
@@ -229,7 +222,7 @@ bool PgSQL_Handler::fetch_num(class SQL_Query *query, int fieldidx, char *&dest,
 	return true;
 }
 
-bool PgSQL_Handler::fetch_assoc(class SQL_Query *query, char *fieldname, char *&dest, int &len) {
+bool PgSQL_Handler::fetch_assoc(SQL_Query *query, char *fieldname, char *&dest, int &len) {
 	SQL_Result *r = query->results[query->last_result];
 	for (int i = 0, size = r->field_names.size(); i != size; ++i) {
 		if (strcmp(r->field_names[i].first, fieldname) == 0) {

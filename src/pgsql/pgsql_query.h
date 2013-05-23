@@ -22,12 +22,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifdef POSTGRE_SQL
+ 
+#include "pgsql.h"
+ 
+#ifdef SQL_HANDLER_PGSQL
 
 #pragma once
-
-#include "../main.h"
 
 class PgSQL_Query : public SQL_Query {
 	

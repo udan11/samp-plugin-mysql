@@ -25,8 +25,8 @@
 
 #pragma once
 
-#if ((defined(WIN32)) || (defined(_WIN32)) || (defined(_WIN64)))
-	#include "windows.h"
+#ifdef _WIN32
+	#include <Windows.h>
 #else
 	#include "pthread.h"
 #endif
@@ -34,14 +34,11 @@
 class Mutex {
 	public:
 		bool isEnabled;
-		static Mutex *getInstance();
 		void lock();
 		void unlock();
-		~Mutex();
 		Mutex();
-	private:
-		static Mutex singleton;
-#ifdef WIN32
+		~Mutex();
+#ifdef _WIN32
 		CRITICAL_SECTION handle;
 #else
 		pthread_mutex_t handle;
