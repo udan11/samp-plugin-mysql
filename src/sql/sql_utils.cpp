@@ -27,19 +27,19 @@
 #include "sql_query.h"
 #include "../main.h"
 
-extern handlers_t handlers;
-extern queries_t queries;
+extern handler_map_t handlers;
+extern query_map_t queries;
 
 bool is_valid_handler(int id) {
 	// Always call the "const_iterator" version for pure read safety.
-	return static_cast<const handlers_t>(handlers).find(id) != static_cast<const handlers_t>(handlers).end();
+	return static_cast<const handler_map_t>(handlers).find(id) != static_cast<const handler_map_t>(handlers).end();
 }
 
 bool is_valid_query(int id) {
 	// Always call the "const_iterator" version for pure read safety.
-	return static_cast<const queries_t>(queries).find(id) != static_cast<const queries_t>(queries).end();
+	return static_cast<const query_map_t>(queries).find(id) != static_cast<const query_map_t>(queries).end();
 }
-
+/*
 SQL_Query *get_query(queries_t & q, int query_id) {
 	return const_cast<SQL_Query *>(static_cast<queries_t const &>(q).at(query_id));
 }
@@ -58,3 +58,4 @@ SQL_Result *get_last_result(SQL_Query & q)
 	}
 	return 0;
 }
+*/

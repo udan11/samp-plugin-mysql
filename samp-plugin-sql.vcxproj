@@ -40,6 +40,7 @@
     <OutDir>bin\</OutDir>
     <IntDir>bin\</IntDir>
     <TargetName>sql</TargetName>
+    <IncludePath>E:\Program Files\Boost\include\boost-1_53\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -59,7 +60,11 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>src\plugin.def</ModuleDefinitionFile>
       <AdditionalDependencies>lib\mysql\libmysql.lib;lib\pgsql\libpq.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>..\plugins\$(TargetName)$(TargetExt)</OutputFile>
     </Link>
+    <ClCompile>
+      <PreprocessorDefinitions>HAVE_STDINT_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\log.h" />

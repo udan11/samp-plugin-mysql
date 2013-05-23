@@ -34,6 +34,8 @@ class SQL_Result;
 
 extern bool is_valid_handler(int id);
 extern bool is_valid_query(int id);
+/*
 SQL_Query *get_query(std::map<int, class SQL_Query*> & q, int query_id);
 SQL_Handler *get_handler(std::map<int, class SQL_Handler*> & q, int query_id);
 SQL_Result *get_last_result(SQL_Query & q);
+*/

@@ -24,13 +24,16 @@
  */
 
 #include "sql_query.h"
+#include <map>
+
+extern std::map<int, class SQL_Query*> queries;
 
 SQL_Query::SQL_Query() :
 	amx(0),
 	id(0),
 	handler(0),
 	flags(0),
-	status(0),
+	status(QUERY_STATUS_NONE),
 	error(0),
 	last_result(0),
 	query(""),
@@ -57,6 +60,8 @@ SQL_Query::~SQL_Query() {
 		// Shouldn't use "free" on classes - it doesn't call the destructor.
 		delete (*i);
 	}
+	// Remove this query from the main map if its still in there.
+	queries.erase(id);
 }
 
 int SQL_Query::execute_callback() {

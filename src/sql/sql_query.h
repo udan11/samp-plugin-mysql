@@ -38,7 +38,8 @@
 
 #define QUERY_STATUS_NONE				0
 #define QUERY_STATUS_EXECUTED			1
-#define QUERY_STATUS_PROCESSED			2
+#define QUERY_STATUS_STORED				2
+//#define QUERY_STATUS_PROCESSED			2
 
 class SQL_Query {
 	public:

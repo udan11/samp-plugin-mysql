@@ -31,13 +31,7 @@
 #include <map>
 #include <vector>
 
-#ifdef _WIN32
-	#include <Windows.h>
-	#define SLEEP(x) Sleep(x);
-#else
-	#include "pthread.h"
-	#include <unistd.h>
-	#define SLEEP(x) usleep(x * 1000);
+#ifndef _WIN32
 	typedef unsigned long DWORD;
 	typedef unsigned int UINT;
 #endif
@@ -68,5 +62,9 @@
 extern Mutex *amxMutex;
 
 extern int last_handler, last_query;
-extern std::map<int, class SQL_Handler*> handlers;
-extern std::map<int, class SQL_Query*> queries;
+
+typedef std::map<int, class SQL_Query*> query_map_t;
+typedef std::map<int, class SQL_Handler*> handler_map_t;
+
+extern handler_map_t handlers;
+extern query_map_t queries;

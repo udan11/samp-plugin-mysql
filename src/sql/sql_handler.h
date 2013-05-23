@@ -26,14 +26,42 @@
 #pragma once
 
 #define SQL_HANDLER_MYSQL				1
-#define SQL_HANDLER_PGSQL				2
+//#define SQL_HANDLER_PGSQL				2
 
 #include "../sdk/amx/amx.h"
 
 #include "sql_query.h"
+#include "../mutex.h"
+
+#include <boost/lockfree/queue.hpp>
+
+#ifdef _WIN32
+	#include <Windows.h>
+	#define SLEEP(x) Sleep(x);
+#else
+	#include "pthread.h"
+	#include <unistd.h>
+	#define SLEEP(x) usleep(x * 1000);
+	typedef unsigned long DWORD;
+	typedef unsigned int UINT;
+#endif
 
 class SQL_Handler {
+	private:
+		typedef boost::lockfree::queue< class SQL_Query *, boost::lockfree::allocator< std::allocator<class SQL_Query *> > > queue_t;
+		// Pending queries for this handler.
+		queue_t pending, done;
+		// Should the handler remain running.
+		bool is_active;
+		// Just one mutex in case a single connection is used to run both
+		// threaded and unthreded queries.
+		Mutex mut;
+	protected:
+		// Destructor.
+		virtual ~SQL_Handler();
 	public:
+		// Helper function to safely destroy a handler.
+		static void destroy(SQL_Handler *This);
 		// The AMX machine hosting this handler.
 		AMX *amx;
 		// Handler's ID & type.
@@ -70,4 +98,15 @@ class SQL_Handler {
 		virtual bool fetch_num(SQL_Query *query, int fieldidx, char *&dest, int &len) = 0;
 		// Fetches a cell by it's name.
 		virtual bool fetch_assoc(SQL_Query *query, char *fieldname, char *&dest, int &len) = 0;
+		#ifdef _WIN32
+		static DWORD __stdcall Process(LPVOID lpParam);
+		HANDLE thread;
+		#else
+		static void *Process(void *lpParam);
+		pthread_t thread;
+		#endif
+		bool pop(SQL_Query* & ret) { return done.pop(ret); };
+		bool push(SQL_Query* const & ret) { return pending.push(ret); };
+		void lock() { mut.lock(); };
+		void unlock() { mut.unlock(); };
 };
