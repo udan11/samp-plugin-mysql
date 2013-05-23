@@ -30,9 +30,10 @@
 #pragma once
 
 class MySQL_Handler : public SQL_Handler {
+	protected:
+		~MySQL_Handler();
 	public:
 		MySQL_Handler();
-		~MySQL_Handler();
 		bool connect(const char *host, const char *user, const char *pass, const char *db, int port);
 		void disconnect();
 		int get_errno();

@@ -24,11 +24,38 @@
  */
 
 #include "sql_utils.h"
+#include "sql_query.h"
+#include "../main.h"
+
+extern handler_map_t handlers;
+extern query_map_t queries;
 
 bool is_valid_handler(int id) {
-	return handlers.find(id) != handlers.end();
+	// Always call the "const_iterator" version for pure read safety.
+	return static_cast<const handler_map_t>(handlers).find(id) != static_cast<const handler_map_t>(handlers).end();
 }
 
 bool is_valid_query(int id) {
-	return queries.find(id) != queries.end();
+	// Always call the "const_iterator" version for pure read safety.
+	return static_cast<const query_map_t>(queries).find(id) != static_cast<const query_map_t>(queries).end();
 }
+/*
+SQL_Query *get_query(queries_t & q, int query_id) {
+	return const_cast<SQL_Query *>(static_cast<queries_t const &>(q).at(query_id));
+}
+
+SQL_Handler *get_handler(handlers_t & q, int query_id) {
+	return const_cast<SQL_Handler *>(static_cast<handlers_t const &>(q).at(query_id));
+}
+
+SQL_Result *get_last_result(SQL_Query & q)
+{
+	unsigned int last_result = static_cast<SQL_Query const &>(q).last_result;
+	unsigned int num_results = static_cast<SQL_Query const &>(q).results.size();
+	if (last_result < num_results)
+	{
+		return const_cast<SQL_Result *>(static_cast<SQL_Query const &>(q).results.at(last_result));
+	}
+	return 0;
+}
+*/

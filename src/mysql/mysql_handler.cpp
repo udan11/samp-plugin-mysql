@@ -136,7 +136,8 @@ bool MySQL_Handler::seek_result(SQL_Query *query, int result) {
 	if (query->last_result == result) {
 		return true;
 	}
-	if ((0 <= result) && (result < query->results.size())) {
+	// This should be an unsigned comparison.
+	if ((0 <= (unsigned int)result) && ((unsigned int)result < query->results.size())) {
 		query->last_result = result;
 		return true;
 	}

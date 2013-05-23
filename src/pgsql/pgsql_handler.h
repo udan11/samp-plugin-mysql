@@ -30,9 +30,10 @@
 #pragma once
 
 class PgSQL_Handler : public SQL_Handler {
+	protected:
+		~PgSQL_Handler();
 	public:
 		PgSQL_Handler();
-		~PgSQL_Handler();
 		bool connect(const char *host, const char *user, const char *pass, const char *db, int port);
 		void disconnect();
 		int get_errno();
