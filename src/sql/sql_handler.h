@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include <boost/unordered/unordered_map.hpp>
+#include <map>
 
 #ifdef _WIN32
 	#include <Windows.h>
@@ -68,4 +68,4 @@ class SQL_Handler {
 		virtual bool fetch_assoc(SQL_Query *query, char *fieldname, char *&dest, int &len) = 0;
 };
 
-typedef boost::unordered_map<int, class SQL_Handler*> handlers_t;
+typedef std::map<int, class SQL_Query*> queries_t;
